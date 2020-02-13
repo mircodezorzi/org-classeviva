@@ -24,9 +24,8 @@
 
 (defun read-credentials ()
  "Read credentials."
- (progn
-  (read-username)
-  (read-password)))
+ (setq org-classeviva-username (read-string "enter username: ")
+       org-classeviva-password (read-string "enter password: ")))
 
 (read-credentials)
 
@@ -263,6 +262,7 @@
   (cdr (assoc 'agenda org-agenda)))
  "\n")
 
+;; insert into buffer headers and timestamps
 (string-join
  (mapcar
   (lambda (x)
@@ -277,5 +277,30 @@
      (insert (format "** %s\n%s\n" (cdr (assoc 'notes x)) ts)))))
   (cdr (assoc 'agenda org-agenda)))
  "\n")
+
+(cl-defun org-classeviva-request (&key url type parser headers data)
+ (unless parser (setq parser 'buffer-string))
+ (print parser)
+ (let ((url-request-method type)
+       (url-request-extra-headers headers)
+       (url-request-data data))
+  (with-current-buffer (url-retrieve-synchronously url)
+   (goto-char (point-min))
+   (re-search-forward "^$")
+   (delete-region (point) (point-min))
+   (funcall parser))))
+
+(org-classeviva-request
+ :url "https://web.spaggiari.eu/rest/v1/auth/login/"
+
+ :type "POST"
+ :parser 'json-read
+
+ :headers '(("User-Agent" ."zorro/1.0")
+            ("Z-Dev-Apikey" . "+zorro+")
+            ("Content-Type" . "application/json"))
+
+ :data (json-encode `(("uid"  . ,org-classeviva-username)
+                      ("pass" . ,org-classeviva-password))))
 
 ;;; scratchpad.el ends here
